@@ -1,0 +1,80 @@
+pip install requests
+
+git clone https://gerrit.wikimedia.org/r/pywikibot/core.git
+cd core
+git submodule update --init
+
+pip install mwparserfromhell
+pip install wikitextparser
+
+==================================================================
+
+python pwb.py generate_user_files.py
+
+Abrir e editar o arquivo user-config.py. Mude password_file = None para password_file = 'user-password.py'
+
+Crie e edite o arquivo user-password.py na pasta core com o conteúdo:
+(username, password)
+
+==================================================================
+
+Mova todos os scripts que estão em core mas fora de pywikibot, para a pasta pywikibot
+
+Mova pywikibot para o local das bibliotecas python
+
+Edite config.py, altere base_dir = '' para base_dir = r'C:\Users\foo\pywikibot'
+
+==================================================================
+
+Opicional:
+
+Se o nome do arquivo já existir no Commons o pywikibot pergunta se você gostaria de sobrescrever o arquivo, na maioria das vezes
+isso não é desejável. Para o pywikibot não ficar parado esperando a sua resposta configure o bot para continuar o carregamento 
+sem iterrupções.
+
+No diretório do pywikibot vá para a pasta specialbots e edite _upload.py
+
+Em _upload.py encontre:
+
+                if potential_file_page.has_permission():
+                    if overwrite is None:
+                        overwrite = not pywikibot.input_yn(
+                            'File with name {} already exists. '
+                            'Would you like to change the name? '
+                            '(Otherwise file will be overwritten.)'
+                            .format(filename),
+
+Vamos alterar os parâmetros da função input_yn(), essa função faz a interação com o usuário por meio do promp 
+e espera 'y' ou 'n' para definir os rumos do upload.
+
+O que vamos fazer é definir o valor de defult: default='n' para o arquivo não ser sobrescrito no Commons.
+Forçamos a entrada do valor de default com force=True.
+
+                if potential_file_page.has_permission():
+                    if overwrite is None:
+                        overwrite = not pywikibot.input_yn(
+                            'File with name {} already exists. '
+                            'Would you like to change the name? '
+                            '(Otherwise file will be overwritten.)'
+                            .format(filename), default='n',
+                            automatic_quit=False,
+                            force=True)
+
+Opcionalmente podemos fazer um backup para saber quais arquivos já tinham o nome no Commons e não foram carregados:
+Basta adicionar o código abaixo para criar um arquivo txt com o backup
+
+			#Creates txt file with the name of files that already exist on Commons
+                        file_exists = open(re.match('.*\\\\', str(file_url)).group(0)+'The file already exists on Commons.txt', 'a')
+                        file_exists.write('The file ' + filename + ' already exists on Commons\n')
+                        file_exists.close()
+
+Isso irá criar o arquivo "The file already exists on Commons.txt" no mesmo local onde os arquivos que estão sendo carregados 
+estão armazenados.
+
+Por fim, encontre:
+        if answer is None:
+            answer = pywikibot.input_yn('Do you want to ignore?',
+E altere para:
+        if answer is None:
+            answer = pywikibot.input_yn('Do you want to ignore?',
+                                        default='n', automatic_quit=False, force=True)
